@@ -1,0 +1,5 @@
+[tool.pyright]
+include=["."]
+# reportGeneralTypeIssues = false
+# reportOptionalMemberAccess = false
+# reportOptionalSubscript = false
