@@ -1,17 +1,18 @@
-import customtkinter as ctk
 import asyncio
-
-from PIL import Image, ImageTk
-import xl
 from pathlib import Path
 
+import customtkinter as ctk
+from async_tkinter_loop import async_handler, async_mainloop
+from PIL import Image, ImageTk
+
+import xl
 
 ctk.set_appearance_mode("dark")
 
 # PATHS
 CWD = Path(".")
-EXCEL_ICON_PATH = CWD / "sheet.png"
-CLOSE_ICON_PATH = CWD / "red2.png"
+EXCEL_ICON_PATH = CWD / "icons" / "sheet.png"
+CLOSE_ICON_PATH = CWD /  "icons" /"red2.png"
 
 
 COLORS = {
@@ -45,31 +46,39 @@ class App(ctk.CTk):
             open_file_callback=self.open_files,
             delete_file_callback=self.delete_item,
         )
-        self.mainbar_frame.grid(row=0, column=1, padx=(0, 30), pady=30, sticky="news")
+        self.mainbar_frame.grid(row=0, column=1, padx=(
+            0, 30), pady=30, sticky="news")
 
         self.sidebar_frame = SidebarFrame(
             self,
-            find_duplicates_callback=self.find_duplicates,
+            find_duplicates_callback=async_handler(self.find_duplicates),
             is_saved=self.is_saved,
             show_dup_origin=self.show_dup_origin,
         )
-        self.sidebar_frame.grid(row=0, column=0, padx=20, pady=30, sticky="news")
+        self.sidebar_frame.grid(
+            row=0, column=0, padx=20, pady=30, sticky="news")
 
         self.progressbar = ctk.CTkProgressBar(
             self,
-            determinate_speed=5,
-            mode="indeterminate",
+            determinate_speed=1,
+            mode="determinate",
         )
-        self.progressbar.grid(row=3, column=0, columnspan=2, sticky="we", padx=20)
+        self.progressbar.set(0)
+        # self.progressbar.grid(
+        #     row=3, column=0, columnspan=2, sticky="we", padx=20
+        #     )
 
         self.info_label = ctk.CTkLabel(self, bg_color="transparent", text="")
-        self.info_label.grid(
-            row=4, column=0, columnspan=2, pady=(20, 20), padx=20, sticky="we"
-        )
+        # self.info_label.grid(
+        #     row=4, column=0, columnspan=2, pady=(20, 20), padx=20, sticky="we"
+        # )
 
     # ------ Callbacks ------------------
     def open_files(self):
+        self.progressbar.set(0)
+        self.progressbar.grid_forget()
         self.info_label.configure(text="")
+        self.info_label.grid_forget()
         file_names = ctk.filedialog.askopenfilenames(
             filetypes=(
                 ("Excel files", "*.xlsx"),
@@ -82,6 +91,7 @@ class App(ctk.CTk):
         for fn in file_names:
             if fn not in self.selected_files:
                 self.selected_files.add(fn)
+
                 self.mainbar_frame.list_frame.add_item(fn)
 
     def get_selected_files(self):
@@ -89,33 +99,49 @@ class App(ctk.CTk):
 
     # NOTE: rewrite as context manager to make use of progress bar?
     # make use of asyncio
-    def find_duplicates(self):
+    async def find_duplicates(self):
         _s = self.get_selected_files()
         if _s:
             try:
+                self.progressbar.set(0)
+                self.progressbar.grid(
+                    row=3, column=0, columnspan=2, sticky="we", padx=20
+                    )
                 all_values = xl.get_files_values(_s)
-                xl.edit_files_values(
+                await xl.edit_files_values(
                     valuesDict=all_values,
                     files=_s,
                     make_copy=self.is_saved.get(),
                     show_dup_origin=self.show_dup_origin.get(),
                 )
+                await self.progress_handler()
                 self.set_label_status("SUCCESS")
                 self.info_label.configure(text="DONE")
+                self.info_label.grid(row=4, column=0, columnspan=2, padx=20, sticky="we")
+                self.progressbar.set(1)
+                self.progressbar.grid_forget()
             except Exception as e:
                 self.info_label.configure(text=f"An ERROR occurred: {e}")
                 self.info_label.configure(text_color="red")
+                self.info_label.grid(row=4, column=0, columnspan=2, padx=20, sticky="we")
         else:
             self.set_label_status("ERROR")
             self.info_label.configure(text="no items selected")
             self.info_label.configure(
                 text="no items selected", fg_color="#381616", text_color="#CA6A68"
             )
+            self.info_label.grid(row=4, column=0, columnspan=2, padx=20, sticky="we")
 
     def delete_item(self, item):
         self.selected_files.remove(item)
 
     # ------ Utilities ------------------
+    async def progress_handler(self):
+        for i in range(1, len(self.selected_files) + 1):
+            print(i * (1/len(self.selected_files)))
+            self.progressbar.set(i * (1/len(self.selected_files)))
+            await asyncio.sleep(0)
+
     # WARNING: trash incoming
     def set_label_status(self, status):
         if status == "SUCCESS":
@@ -139,10 +165,12 @@ class MainbarFrame(ctk.CTkFrame):
         self.rowconfigure(1, weight=10)
 
         self.open_frame = OpenFileFrame(self, open_file=open_file_callback)
-        self.open_frame.grid(column=0, row=0, padx=30, pady=(20, 0), sticky="nwe")
+        self.open_frame.grid(column=0, row=0, padx=30,
+                             pady=(20, 0), sticky="nwe")
 
         self.list_frame = FileListFrame(self, delete_item=delete_file_callback)
-        self.list_frame.grid(column=0, row=1, padx=30, pady=(0, 20), sticky="news")
+        self.list_frame.grid(column=0, row=1, padx=30,
+                             pady=(0, 20), sticky="news")
 
 
 class OpenFileFrame(ctk.CTkFrame):
@@ -200,7 +228,8 @@ class FileListFrame(ctk.CTkScrollableFrame):
     def recolor_scrollbar(self):
         if len(self.items) > 16:
             self.configure(scrollbar_button_color=COLORS["FRAME_HIGHLIGHT"])
-            self.configure(scrollbar_button_hover_color=COLORS["FRAME_HIGHLIGHT_HOVER"])
+            self.configure(
+                scrollbar_button_hover_color=COLORS["FRAME_HIGHLIGHT_HOVER"])
         else:
             self.configure(scrollbar_button_color=COLORS["FRAME_BG"])
             self.configure(scrollbar_button_hover_color=COLORS["FRAME_BG"])
@@ -278,8 +307,10 @@ class SidebarFrame(ctk.CTkFrame):
         )
 
         self.duplicate_button.pack(padx=20, pady=(20, 50), fill="x")
-        self.save_files_switch.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
-        self.show_duplicate_origin.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.save_files_switch.pack(
+            anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.show_duplicate_origin.pack(
+            anchor="w", padx=(20, 20), pady=10, fill="x")
         self.bg_frame.pack(fill="x", padx=20)
         self.exit_button.pack(padx=20, fill="x", pady=20, side="bottom")
 
@@ -349,4 +380,5 @@ class ExcelIcon(ctk.CTkCanvas):
 
 
 app = App()
-app.mainloop()
+async_mainloop(app)
+# app.mainloop()

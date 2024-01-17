@@ -1,6 +1,6 @@
-from pathlib import Path
-import random
 import asyncio
+import random
+from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
@@ -24,13 +24,14 @@ def generate_random_num() -> str:
 
 
 def generate_days(days: int, numbers: int) -> None:
+    (Path(".") / "months").mkdir(exist_ok=True)
     for i in track(range(1, days + 1)):
         wb = Workbook()
         ws = wb.active
         for row in ws.iter_rows(min_row=1, max_col=1, max_row=numbers):
             for cell in row:
                 cell.value = generate_random_num()
-        wb.save(f"{i}.xlsx")
+        wb.save(Path(".") / "months" / f"{i}.xlsx")
 
 
 def load() -> dict:
@@ -59,7 +60,8 @@ def edit(valuesDict) -> None:
                 if valuesDict[cell.value][0] > 1:
                     cell.font = Font(color="FF0000")
                     for i, x in enumerate(set(valuesDict[cell.value][1])):
-                        ws.cell(row=cell.row, column=cell.column + i + 1, value=x)
+                        ws.cell(row=cell.row, column=cell.column +
+                                i + 1, value=x)
         wb.save(filename=xp)
 
 
@@ -78,7 +80,7 @@ def get_files_values(files: set) -> dict:
     return values
 
 
-def edit_files_values(
+async def edit_files_values(
     valuesDict: dict, files: set, make_copy: bool, show_dup_origin: bool
 ) -> None:
     fp = Path(".")
@@ -102,6 +104,7 @@ def edit_files_values(
                         )
         xp_file_name = xp.split("/")[-1]
         wb.save(filename=fp / xp_file_name)
+        await asyncio.sleep(0)
 
 
 def create_main(path: Path) -> None:
