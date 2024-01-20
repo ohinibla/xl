@@ -1,12 +1,9 @@
 import asyncio
-import time
 from pathlib import Path
 
 import customtkinter as ctk
-from PIL import Image, ImageTk
-
-
 import tk_async_execute as tae
+from PIL import Image, ImageTk
 
 import xl
 
@@ -28,13 +25,17 @@ COLORS = {
 }
 
 
+# ------ Main Window class ----------------------------------------------
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+
+        # ------ Variables -----------------
         self.selected_files: set = set()
         self.is_saved = ctk.BooleanVar(value=False)
         self.show_dup_origin = ctk.BooleanVar(value=False)
 
+        # ------ General settings ----------
         self.title("Excel Duplicates")
         self.geometry("1000x500")
         self.resizable(False, False)
@@ -51,7 +52,8 @@ class App(ctk.CTk):
             open_file_callback=self.open_files,
             delete_file_callback=self.delete_item,
         )
-        self.mainbar_frame.grid(row=0, column=1, padx=(0, 30), pady=10, sticky="news")
+        self.mainbar_frame.grid(row=0, column=1, padx=(
+            0, 30), pady=10, sticky="news")
 
         self.sidebar_frame = SidebarFrame(
             self,
@@ -59,23 +61,21 @@ class App(ctk.CTk):
             is_saved=self.is_saved,
             show_dup_origin=self.show_dup_origin,
         )
-        self.sidebar_frame.grid(row=0, column=0, padx=20, pady=10, sticky="news")
+        self.sidebar_frame.grid(
+            row=0, column=0, padx=20, pady=10, sticky="news")
 
-        self.progressbar = ctk.CTkProgressBar(
+        self.progressbar = Progress(
             self,
             determinate_speed=1,
             mode="determinate",
+            height=25,
+            corner_radius=0,
         )
         self.progressbar.set(0)
-        # self.progressbar.grid(row=1, column=0, columnspan=2, sticky="we", padx=20)
-
-        self.info_label = ctk.CTkLabel(self, bg_color="red", text="")
-        self.info_label.grid(row=2, column=0, columnspan=2, padx=20, sticky="we")
 
     # ------ Callbacks ------------------
     def open_files(self):
         self.progressbar.grid_forget()
-        self.info_label.grid_forget()
         file_names = ctk.filedialog.askopenfilenames(
             filetypes=(
                 ("Excel files", "*.xlsx"),
@@ -94,15 +94,14 @@ class App(ctk.CTk):
     def get_selected_files(self):
         return self.selected_files
 
-    # NOTE: rewrite as context manager to make use of progress bar?
-    # make use of asyncio
     async def find_duplicates(self):
         self.progressbar.set(0)
         _s = self.get_selected_files()
         if _s:
             try:
+                self.progressbar.update_text(text="Loading", color="white")
                 self.progressbar.grid(
-                    row=1, column=0, columnspan=2, sticky="we", padx=20
+                    row=1, column=0, columnspan=2, sticky="we", padx=(20, 30)
                 )
                 all_values = xl.get_files_values(_s)
                 await xl.edit_files_values(
@@ -112,26 +111,13 @@ class App(ctk.CTk):
                     show_dup_origin=self.show_dup_origin.get(),
                 )
                 await self.progress_handler()
-                self.set_label_status("SUCCESS")
-                time.sleep(0.1)
-                self.info_label.grid(
-                    row=1, column=0, columnspan=2, padx=20, sticky="we"
-                )
-                self.info_label.configure(text="DONE")
-                self.progressbar.grid_forget()
+                self.progressbar.update_text(text="Done", color="#94D095")
+                self.progressbar.configure(progress_color="#293C17")
+
             except Exception as e:
-                self.info_label.configure(text=f"An ERROR occurred: {e}")
-                self.info_label.configure(text_color="red")
-                self.info_label.grid(
-                    row=1, column=0, columnspan=2, padx=20, sticky="we"
-                )
+                pass
         else:
-            self.set_label_status("ERROR")
-            self.info_label.configure(text="no items selected")
-            self.info_label.configure(
-                text="no items selected", fg_color="#381616", text_color="#CA6A68"
-            )
-            self.info_label.grid(row=1, column=0, columnspan=2, padx=20, sticky="we")
+            pass
 
     def find_duplicates_callback_func(self):
         tae.async_execute(self.find_duplicates(), visible=False)
@@ -139,27 +125,15 @@ class App(ctk.CTk):
     def delete_item(self, item):
         self.selected_files.remove(item)
 
-    # ------ Utilities ------------------
+    # ------ Utilities -----
     async def progress_handler(self):
-        for i in range(1, len(self.selected_files) + 1):
+        for i, fn in enumerate(self.selected_files, start=1):
             self.progressbar.set(i * (1 / len(self.selected_files)))
+            self.progressbar.update_text(text=fn.split("/")[-1], color="white")
             await asyncio.sleep(0)
 
-    # WARNING: trash incoming
-    def set_label_status(self, status):
-        if status == "SUCCESS":
-            _fg_color = "#293C17"
-            _text_color = "#94D095"
-        elif status == "ERROR":
-            _fg_color = "#381616"
-            _text_color = "#CA6A68"
-        elif status == "CLEAR":
-            _fg_color = ""
-            _text_color = ""
 
-        self.info_label.configure(fg_color=_fg_color, text_color=_text_color)
-
-
+# ------ Sub Windows ----------------------------------------------------
 class MainbarFrame(ctk.CTkFrame):
     def __init__(self, *args, open_file_callback, delete_file_callback, **kwargs):
         super().__init__(*args, **kwargs)
@@ -168,7 +142,8 @@ class MainbarFrame(ctk.CTkFrame):
         self.rowconfigure(1, weight=10)
 
         self.open_frame = OpenFileFrame(self, open_file=open_file_callback)
-        self.open_frame.grid(column=0, row=0, padx=30, pady=(20, 0), sticky="nwe")
+        self.open_frame.grid(column=0, row=0, padx=30,
+                             pady=(20, 0), sticky="nwe")
 
         self.list_frame = FileListFrame(self, delete_item=delete_file_callback)
         self.list_frame.grid(column=0, row=1, padx=30, pady=20, sticky="news")
@@ -229,7 +204,8 @@ class FileListFrame(ctk.CTkScrollableFrame):
     def recolor_scrollbar(self):
         if len(self.items) > 16:
             self.configure(scrollbar_button_color=COLORS["FRAME_HIGHLIGHT"])
-            self.configure(scrollbar_button_hover_color=COLORS["FRAME_HIGHLIGHT_HOVER"])
+            self.configure(
+                scrollbar_button_hover_color=COLORS["FRAME_HIGHLIGHT_HOVER"])
         else:
             self.configure(scrollbar_button_color=COLORS["FRAME_BG"])
             self.configure(scrollbar_button_hover_color=COLORS["FRAME_BG"])
@@ -307,8 +283,10 @@ class SidebarFrame(ctk.CTkFrame):
         )
 
         self.duplicate_button.pack(padx=20, pady=(20, 50), fill="x")
-        self.save_files_switch.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
-        self.show_duplicate_origin.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.save_files_switch.pack(
+            anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.show_duplicate_origin.pack(
+            anchor="w", padx=(20, 20), pady=10, fill="x")
         self.bg_frame.pack(fill="x", padx=20)
         self.exit_button.pack(padx=20, fill="x", pady=20, side="bottom")
 
@@ -375,6 +353,31 @@ class ExcelIcon(ctk.CTkCanvas):
 
     def _delete(self, event):
         self.delete_event_handler()
+
+
+class Progress(ctk.CTkProgressBar):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # self.text = self._canvas.create_text(
+        #     500,
+        #     12,
+        #     text="",
+        #     fill="white",
+        #     font=("Helvetica 10 normal"),
+        #     tags="text",
+        # )
+
+    def update_text(self, text, color):
+        self._canvas.delete("text")
+        self.text = self._canvas.create_text(
+            500,
+            12,
+            text=text,
+            fill=color,
+            font=("Helvetica 10 normal"),
+            tags="text",
+        )
 
 
 app = App()

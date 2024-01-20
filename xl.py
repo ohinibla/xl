@@ -60,7 +60,8 @@ def edit(valuesDict) -> None:
                 if valuesDict[cell.value][0] > 1:
                     cell.font = Font(color="FF0000")
                     for i, x in enumerate(set(valuesDict[cell.value][1])):
-                        ws.cell(row=cell.row, column=cell.column + i + 1, value=x)
+                        ws.cell(row=cell.row, column=cell.column +
+                                i + 1, value=x)
         wb.save(filename=xp)
 
 
