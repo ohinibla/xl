@@ -9,20 +9,27 @@ import xl
 
 ctk.set_appearance_mode("dark")
 
-# PATHS
-CWD = Path(".")
-EXCEL_ICON_PATH = CWD / "icons" / "sheet.png"
-CLOSE_ICON_PATH = CWD / "icons" / "red2.png"
 
+class Utility:
+    # the class must be instantiated or tkinter complains about using font class without root(?)
+    def __init__(self):
+        self.font = ctk.CTkFont(family="Helvetica", size=14, weight="bold")
+        self.bigger_font = ctk.CTkFont(family="Helvetica", size=18, weight="bold")
 
-COLORS = {
-    "BLUE": "#007BFF",
-    "RED": "#DC3545",
-    "FRAME_BG": "#333333",
-    "FRAME_FG": "#2B2B2B",
-    "FRAME_HIGHLIGHT": "#404040",
-    "FRAME_HIGHLIGHT_HOVER": "#595959",
-}
+    # colors
+    class COLOR:
+        BLUE = "#007BFF"
+        RED = "#DC3545"
+        FRAME_BG = "#333333"
+        FRAME_FG = "#2B2B2B"
+        FRAME_HIGHLIGHT = "#404040"
+        FRAME_HIGHLIGHT_HOVER = "#595959"
+
+    # PATHS
+    class Path:
+        CWD = Path(".")
+        EXCEL_ICON_PATH = CWD / "icons" / "sheet.png"
+        CLOSE_ICON_PATH = CWD / "icons" / "red2.png"
 
 
 # ------ Main Window class ----------------------------------------------
@@ -52,8 +59,13 @@ class App(ctk.CTk):
             open_file_callback=self.open_files,
             delete_file_callback=self.delete_item,
         )
-        self.mainbar_frame.grid(row=0, column=1, padx=(
-            0, 30), pady=10, sticky="news")
+        self.mainbar_frame.grid(
+            row=0,
+            column=1,
+            padx=(0, 30),
+            # pady=10,
+            sticky="news",
+        )
 
         self.sidebar_frame = SidebarFrame(
             self,
@@ -62,7 +74,12 @@ class App(ctk.CTk):
             show_dup_origin=self.show_dup_origin,
         )
         self.sidebar_frame.grid(
-            row=0, column=0, padx=20, pady=10, sticky="news")
+            row=0,
+            column=0,
+            padx=20,
+            # pady=10,
+            sticky="news",
+        )
 
         self.progressbar = Progress(
             self,
@@ -70,6 +87,7 @@ class App(ctk.CTk):
             mode="determinate",
             height=25,
             corner_radius=0,
+            progress_color=Utility.COLOR.FRAME_FG,
         )
         self.progressbar.set(0)
 
@@ -89,7 +107,10 @@ class App(ctk.CTk):
             if fn not in self.selected_files:
                 self.selected_files.add(fn)
 
-                self.mainbar_frame.list_frame.add_item(fn)
+                self.mainbar_frame.list_frame.add_item(
+                    fn,
+                    index=len(self.selected_files),
+                )
 
     def get_selected_files(self):
         return self.selected_files
@@ -114,6 +135,7 @@ class App(ctk.CTk):
                 self.progressbar.update_text(text="Done", color="#94D095")
                 self.progressbar.configure(progress_color="#293C17")
 
+            # TODO: change these
             except Exception as e:
                 pass
         else:
@@ -142,11 +164,22 @@ class MainbarFrame(ctk.CTkFrame):
         self.rowconfigure(1, weight=10)
 
         self.open_frame = OpenFileFrame(self, open_file=open_file_callback)
-        self.open_frame.grid(column=0, row=0, padx=30,
-                             pady=(20, 0), sticky="nwe")
+        self.open_frame.grid(
+            column=0,
+            row=0,
+            padx=30,
+            pady=(20, 0),
+            sticky="nwe",
+        )
 
         self.list_frame = FileListFrame(self, delete_item=delete_file_callback)
-        self.list_frame.grid(column=0, row=1, padx=30, pady=20, sticky="news")
+        self.list_frame.grid(
+            column=0,
+            row=1,
+            padx=30,
+            pady=20,
+            sticky="news",
+        )
 
 
 class OpenFileFrame(ctk.CTkFrame):
@@ -158,9 +191,17 @@ class OpenFileFrame(ctk.CTkFrame):
         self.configure(fg_color="transparent")
 
         self.entry = ctk.CTkEntry(
-            self, state="disabled", border_width=0, fg_color="gray88", corner_radius=0
+            self,
+            state="disabled",
+            border_width=0,
+            fg_color="gray88",
+            corner_radius=0,
         )
-        self.entry.grid(row=0, column=0, sticky="ew")
+        self.entry.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+        )
 
         self.open_button = ctk.CTkButton(
             self,
@@ -168,8 +209,9 @@ class OpenFileFrame(ctk.CTkFrame):
             width=70,
             command=open_file,
             border_width=0,
-            fg_color=COLORS["BLUE"],
+            fg_color=Utility.COLOR.BLUE,
             corner_radius=0,
+            font=Utility().font,
         )
         self.open_button.grid(row=0, column=1, sticky="w")
 
@@ -181,17 +223,22 @@ class FileListFrame(ctk.CTkScrollableFrame):
         self.grid_columnconfigure((0, 1, 2, 3), weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.configure(scrollbar_button_color=COLORS["FRAME_BG"])
-        self.configure(scrollbar_button_hover_color=COLORS["FRAME_BG"])
+        self.configure(scrollbar_button_color=Utility.COLOR.FRAME_BG)
+        self.configure(scrollbar_button_hover_color=Utility.COLOR.FRAME_BG)
 
         self.delete_item_main = delete_item
         self.items = set()
+        self.items_widgets = dict()
 
-    def place_item(self, item):
+    def place_item(self, item, index):
         last_item_num = len(self.items) - 1
         clean_name = item.split("/")[-1][0:8]
         icon = ExcelIconFrame(
-            self, item_name=clean_name, item_path=item, delete_upclass=self.delete_item
+            self,
+            item_name=clean_name,
+            item_path=item,
+            delete_upclass=self.delete_item,
+            index=index,
         )
         icon.grid(
             row=last_item_num // 4,
@@ -199,106 +246,62 @@ class FileListFrame(ctk.CTkScrollableFrame):
             padx=10,
             pady=10,
         )
+        self.items_widgets[index] = icon
+
+    def add_item(self, item_path: str, index: int) -> None:
+        if item_path not in self.items:
+            self.items.add(item_path)
+            self.place_item(item_path, index)
+        self.recolor_scrollbar()
+
+    # TODO: Rearrange items after deletion
+    def rearrange_items(self, index):
+        new = dict()
+        for i, w in self.items_widgets.items():
+            if i > index:
+                w.index -= 1
+                new[i - 1] = w
+            else:
+                new[i] = w
+
+        self.items_widgets = new
+        for i, w in self.items_widgets.items():
+            if i >= index:
+                w.grid(
+                    row=(w.index - 1) // 4,
+                    column=(w.index - 1) % 4,
+                    padx=10,
+                    pady=10,
+                )
+
+    def delete_item(self, item_path, index):
+        self.items.remove(item_path)
+        del self.items_widgets[index]
+        self.delete_item_main(item_path)
+        self.recolor_scrollbar()
+        self.rearrange_items(index)
 
     # TODO: rewrite better
     def recolor_scrollbar(self):
         if len(self.items) > 16:
-            self.configure(scrollbar_button_color=COLORS["FRAME_HIGHLIGHT"])
+            self.configure(scrollbar_button_color=Utility.COLOR.FRAME_HIGHLIGHT)
             self.configure(
-                scrollbar_button_hover_color=COLORS["FRAME_HIGHLIGHT_HOVER"])
+                scrollbar_button_hover_color=Utility.COLOR.FRAME_HIGHLIGHT_HOVER
+            )
         else:
-            self.configure(scrollbar_button_color=COLORS["FRAME_BG"])
-            self.configure(scrollbar_button_hover_color=COLORS["FRAME_BG"])
-
-    def add_item(self, item_path: str) -> None:
-        if item_path not in self.items:
-            self.items.add(item_path)
-            self.place_item(item_path)
-        self.recolor_scrollbar()
-
-    # TODO: Rearrange items after deletion
-    def rearrange_items(self):
-        pass
-
-    def delete_item(self, item_path):
-        self.items.remove(item_path)
-        self.delete_item_main(item_path)
-        self.recolor_scrollbar()
-
-
-class ReversedSwitch(ctk.CTkSwitch):
-    def __init__(self, *args, switch_height=30, switch_width=50, **kwargs):
-        super().__init__(
-            *args,
-            switch_height=switch_height,
-            switch_width=switch_width,
-            **kwargs,
-        )
-
-        self._canvas.grid(row=0, column=2, sticky="e")
-        self._text_label.grid(row=0, column=0)
-        self.grid_columnconfigure(0, weight=0)
-        self.columnconfigure(1, weight=3)
-        self.grid_columnconfigure(2, weight=1)
-
-
-class SidebarFrame(ctk.CTkFrame):
-    def __init__(
-        self, *args, show_dup_origin, find_duplicates_callback, is_saved, **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-
-        self.is_saved = is_saved
-
-        self.bg_frame = ctk.CTkFrame(self)
-
-        self.duplicate_button = ctk.CTkButton(
-            self,
-            text="find duplicates",
-            command=find_duplicates_callback,
-            fg_color=COLORS["BLUE"],
-            corner_radius=0,
-        )
-
-        self.save_files_switch = ReversedSwitch(
-            self.bg_frame, text="save files", variable=is_saved
-        )
-
-        self.show_duplicate_origin_label = ctk.CTkLabel(
-            self.bg_frame, text="show duplicate origin"
-        )
-
-        self.show_duplicate_origin = ReversedSwitch(
-            self.bg_frame,
-            text="show duplicates origin",
-            variable=show_dup_origin,
-        )
-
-        self.exit_button = ctk.CTkButton(
-            self,
-            text="Exit",
-            fg_color=COLORS["RED"],
-            command=self.quit,
-            corner_radius=0,
-        )
-
-        self.duplicate_button.pack(padx=20, pady=(20, 50), fill="x")
-        self.save_files_switch.pack(
-            anchor="w", padx=(20, 20), pady=10, fill="x")
-        self.show_duplicate_origin.pack(
-            anchor="w", padx=(20, 20), pady=10, fill="x")
-        self.bg_frame.pack(fill="x", padx=20)
-        self.exit_button.pack(padx=20, fill="x", pady=20, side="bottom")
+            self.configure(scrollbar_button_color=Utility.COLOR.FRAME_BG)
+            self.configure(scrollbar_button_hover_color=Utility.COLOR.FRAME_BG)
 
 
 class ExcelIconFrame(ctk.CTkFrame):
-    def __init__(self, *args, item_name, item_path, delete_upclass, **kwargs):
+    def __init__(self, *args, item_name, item_path, delete_upclass, index, **kwargs):
         super().__init__(*args, **kwargs)
         self.configure(fg_color="transparent")
 
         self.item_name = item_name
         self.item_path = item_path
         self.delete_upclass = delete_upclass
+        self.index = index
 
         self.icon_canvas = ExcelIcon(
             self,
@@ -316,7 +319,7 @@ class ExcelIconFrame(ctk.CTkFrame):
         self.name_label.pack()
 
     def _delete(self):
-        self.delete_upclass(item_path=self.item_path)
+        self.delete_upclass(item_path=self.item_path, index=self.index)
         self.destroy()
 
 
@@ -324,15 +327,15 @@ class ExcelIcon(ctk.CTkCanvas):
     def __init__(self, *args, delete_event_handler, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.configure(bg=COLORS["FRAME_BG"])
+        self.configure(bg=Utility.COLOR.FRAME_BG)
         self.configure(bd=0)
         self.delete_event_handler = delete_event_handler
 
-        self._icon = Image.open(EXCEL_ICON_PATH).resize((100, 100))
+        self._icon = Image.open(Utility.Path.EXCEL_ICON_PATH).resize((100, 100))
         self._icon = ImageTk.PhotoImage(self._icon)
         self.icon = self.create_image(0, 0, image=self._icon, anchor="nw")
 
-        self._redx = Image.open(CLOSE_ICON_PATH).resize((30, 30))
+        self._redx = Image.open(Utility.Path.CLOSE_ICON_PATH).resize((30, 30))
         self._redx = ImageTk.PhotoImage(self._redx)
         self.redx = self.create_image(
             100, 0, image=self._redx, anchor="ne", state=ctk.HIDDEN
@@ -355,32 +358,93 @@ class ExcelIcon(ctk.CTkCanvas):
         self.delete_event_handler()
 
 
+class SidebarFrame(ctk.CTkFrame):
+    def __init__(
+        self, *args, show_dup_origin, find_duplicates_callback, is_saved, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+
+        self.is_saved = is_saved
+
+        self.bg_frame = ctk.CTkFrame(self)
+
+        self.duplicate_button = ctk.CTkButton(
+            self,
+            text="find duplicates",
+            command=find_duplicates_callback,
+            fg_color=Utility.COLOR.BLUE,
+            corner_radius=0,
+            font=Utility().font,
+        )
+
+        self.save_files_switch = ReversedSwitch(
+            self.bg_frame, text="save files", variable=is_saved
+        )
+
+        self.show_duplicate_origin_label = ctk.CTkLabel(
+            self.bg_frame, text="show duplicate origin"
+        )
+
+        self.show_duplicate_origin = ReversedSwitch(
+            self.bg_frame,
+            text="show duplicates origin",
+            variable=show_dup_origin,
+        )
+
+        self.exit_button = ctk.CTkButton(
+            self,
+            text="Exit",
+            fg_color=Utility.COLOR.RED,
+            command=self.quit,
+            corner_radius=0,
+            font=Utility().font,
+        )
+
+        self.duplicate_button.pack(padx=20, pady=(20, 50), fill="x")
+        self.save_files_switch.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.show_duplicate_origin.pack(anchor="w", padx=(20, 20), pady=10, fill="x")
+        self.bg_frame.pack(fill="x", padx=20)
+        self.exit_button.pack(padx=20, fill="x", pady=20, side="bottom")
+
+
+class ReversedSwitch(ctk.CTkSwitch):
+    def __init__(self, *args, switch_height=30, switch_width=50, **kwargs):
+        super().__init__(
+            *args,
+            switch_height=switch_height,
+            switch_width=switch_width,
+            **kwargs,
+        )
+
+        self._canvas.grid(row=0, column=2, sticky="e")
+        self._text_label.grid(row=0, column=0)  # type: ignore
+        self._text_label.configure(font=Utility().font)  # type: ignore
+        self.configure(font=Utility().font)
+
+        self.grid_columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=3)
+        self.grid_columnconfigure(2, weight=1)
+
+
 class Progress(ctk.CTkProgressBar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # self.text = self._canvas.create_text(
-        #     500,
-        #     12,
-        #     text="",
-        #     fill="white",
-        #     font=("Helvetica 10 normal"),
-        #     tags="text",
-        # )
-
     def update_text(self, text, color):
         self._canvas.delete("text")
         self.text = self._canvas.create_text(
-            500,
-            12,
+            self.master.winfo_width() / 2,
+            18,
             text=text,
+            justify="center",
             fill=color,
-            font=("Helvetica 10 normal"),
+            font=Utility().bigger_font,
             tags="text",
         )
 
 
-app = App()
-tae.start()
-app.mainloop()
-tae.stop()
+if __name__ == "__main__":
+    app = App()
+    tae.start()
+    app.mainloop()
+    tae.stop()

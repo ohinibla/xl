@@ -83,11 +83,7 @@ def get_files_values(files: set) -> dict:
 async def edit_files_values(
     valuesDict: dict, files: set, make_copy: bool, show_dup_origin: bool
 ) -> None:
-    fp = Path(".")
-    if make_copy:
-        fp = Path(".") / "data"
-        fp.mkdir(exist_ok=True)
-    fp = fp.resolve()
+    fp = Path(".") / "data"
     for xp in files:
         wb = load_workbook(filename=xp, data_only=True)
         ws = wb.active
@@ -102,8 +98,13 @@ async def edit_files_values(
                             column=cell.column + i + 1,
                             value=x.split("/")[-1],
                         )
-        xp_file_name = xp.split("/")[-1]
-        wb.save(filename=fp / xp_file_name)
+        if make_copy:
+            fp.mkdir(exist_ok=True)
+            fp = fp.resolve()
+            xp_file_name = xp.split("/")[-1]
+            wb.save(filename=fp / xp_file_name)
+        else:
+            wb.save(xp)
         await asyncio.sleep(0)
 
 
