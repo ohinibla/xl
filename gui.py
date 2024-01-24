@@ -25,7 +25,6 @@ class Utility:
         FRAME_HIGHLIGHT = "#404040"
         FRAME_HIGHLIGHT_HOVER = "#595959"
 
-    # PATHS
     class Path:
         CWD = Path(".")
         EXCEL_ICON_PATH = CWD / "icons" / "sheet.png"
@@ -63,7 +62,6 @@ class App(ctk.CTk):
             row=0,
             column=1,
             padx=(0, 30),
-            # pady=10,
             sticky="news",
         )
 
@@ -120,10 +118,7 @@ class App(ctk.CTk):
         _s = self.get_selected_files()
         if _s:
             try:
-                self.progressbar.update_text(text="Loading", color="white")
-                self.progressbar.grid(
-                    row=1, column=0, columnspan=2, sticky="we", padx=(20, 30)
-                )
+                self.progressbar.update_text_and_show(text="Loading", color="white")
                 all_values = xl.get_files_values(_s)
                 await xl.edit_files_values(
                     valuesDict=all_values,
@@ -132,14 +127,20 @@ class App(ctk.CTk):
                     show_dup_origin=self.show_dup_origin.get(),
                 )
                 await self.progress_handler()
-                self.progressbar.update_text(text="Done", color="#94D095")
+                self.progressbar.update_text_and_show(text="Done", color="#94D095")
                 self.progressbar.configure(progress_color="#293C17")
 
             # TODO: change these
             except Exception as e:
-                pass
+                self.progressbar.update_text_and_show(
+                    text=f"ERROR: {e}",
+                    color=Utility.COLOR.RED,
+                )
         else:
-            pass
+            self.progressbar.update_text_and_show(
+                text="ERROR: No files selected",
+                color=Utility.COLOR.RED,
+            )
 
     def find_duplicates_callback_func(self):
         tae.async_execute(self.find_duplicates(), visible=False)
@@ -151,7 +152,7 @@ class App(ctk.CTk):
     async def progress_handler(self):
         for i, fn in enumerate(self.selected_files, start=1):
             self.progressbar.set(i * (1 / len(self.selected_files)))
-            self.progressbar.update_text(text=fn.split("/")[-1], color="white")
+            self.progressbar.update_text_and_show(text=fn.split("/")[-1], color="white")
             await asyncio.sleep(0)
 
 
@@ -254,7 +255,6 @@ class FileListFrame(ctk.CTkScrollableFrame):
             self.place_item(item_path, index)
         self.recolor_scrollbar()
 
-    # TODO: Rearrange items after deletion
     def rearrange_items(self, index):
         new = dict()
         for i, w in self.items_widgets.items():
@@ -344,7 +344,8 @@ class ExcelIcon(ctk.CTkCanvas):
         self.tag_bind(self.icon, "<Enter>", self.enter)
         self.tag_bind(self.icon, "<Leave>", self.leave)
 
-        self.tag_bind(self.redx, "<Enter>", self.enter)
+        # manually propagate event
+        self.tag_bind(self.redx, "<Enter>", self.enter_with_cursor)
         self.tag_bind(self.redx, "<Leave>", self.leave)
         self.tag_bind(self.redx, "<Button-1>", self._delete)
 
@@ -356,6 +357,15 @@ class ExcelIcon(ctk.CTkCanvas):
 
     def _delete(self, event):
         self.delete_event_handler()
+
+    # change the cursor to hand only when on redx shape
+    def enter_with_cursor(self, event):
+        self.itemconfig(self.redx, state=ctk.NORMAL)
+        self.configure(cursor="hand2")
+
+    def leave_with_cursor(self, event):
+        self.itemconfig(self.redx, state=ctk.HIDDEN)
+        self.configure(cursor="arrow")
 
 
 class SidebarFrame(ctk.CTkFrame):
@@ -430,7 +440,7 @@ class Progress(ctk.CTkProgressBar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def update_text(self, text, color):
+    def update_text_and_show(self, text, color):
         self._canvas.delete("text")
         self.text = self._canvas.create_text(
             self.master.winfo_width() / 2,
@@ -440,6 +450,13 @@ class Progress(ctk.CTkProgressBar):
             fill=color,
             font=Utility().bigger_font,
             tags="text",
+        )
+        self.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="we",
+            padx=(20, 30),
         )
 
 
