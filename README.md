@@ -4,4 +4,9 @@ TODO:
 
 [✓] Rearrange icons after deletion
 
+[ ] mouse event bug
+
 [ ] Preview excel data
+
+[ ] Package
+

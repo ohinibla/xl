@@ -27,7 +27,7 @@ class Utility:
 
     class Path:
         CWD = Path(".")
-        EXCEL_ICON_PATH = CWD / "icons" / "sheet.png"
+        EXCEL_ICON_PATH = CWD / "icons" / "xls-file.png"
         CLOSE_ICON_PATH = CWD / "icons" / "red2.png"
 
 
@@ -125,6 +125,7 @@ class App(ctk.CTk):
                     files=_s,
                     make_copy=self.is_saved.get(),
                     show_dup_origin=self.show_dup_origin.get(),
+                    test=False,
                 )
                 await self.progress_handler()
                 self.progressbar.update_text_and_show(text="Done", color="#94D095")
@@ -313,7 +314,7 @@ class ExcelIconFrame(ctk.CTkFrame):
             delete_event_handler=self._delete,
         )
 
-        self.name_label = ctk.CTkLabel(self, text=self.item_name)
+        self.name_label = ctk.CTkLabel(self, text=self.item_name, font=Utility().font)
 
         self.icon_canvas.pack()
         self.name_label.pack()
@@ -344,28 +345,32 @@ class ExcelIcon(ctk.CTkCanvas):
         self.tag_bind(self.icon, "<Enter>", self.enter)
         self.tag_bind(self.icon, "<Leave>", self.leave)
 
-        # manually propagate event
+        # WARNING: events have to be repeated on redx also, because mouse entering redx also registers as leaving the icon.
         self.tag_bind(self.redx, "<Enter>", self.enter_with_cursor)
-        self.tag_bind(self.redx, "<Leave>", self.leave)
+        self.tag_bind(self.redx, "<Leave>", self.leave_with_cursor)
         self.tag_bind(self.redx, "<Button-1>", self._delete)
 
     def enter(self, event):
         self.itemconfig(self.redx, state=ctk.NORMAL)
+        print("enter event on enter")
 
     def leave(self, event):
         self.itemconfig(self.redx, state=ctk.HIDDEN)
+        print("leave event on leave")
 
     def _delete(self, event):
         self.delete_event_handler()
 
-    # change the cursor to hand only when on redx shape
+    # BUG: change the cursor to hand only when on redx shape (causes freeze)
     def enter_with_cursor(self, event):
         self.itemconfig(self.redx, state=ctk.NORMAL)
         self.configure(cursor="hand2")
+        print("enter_with_cursor on enter")
 
     def leave_with_cursor(self, event):
         self.itemconfig(self.redx, state=ctk.HIDDEN)
-        self.configure(cursor="arrow")
+        self.configure(cursor="")
+        print("leave_with_cursor on enter")
 
 
 class SidebarFrame(ctk.CTkFrame):
