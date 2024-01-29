@@ -1,12 +1,15 @@
 TODO:
 
-[✓] Use async capability to show the progress with progressbar widget
+[✓] Async capability to show the progress with progressbar widget
 
 [✓] Rearrange icons after deletion
 
-[ ] mouse event bug
+[✓] Mouse event bug
+
+[ ] Packaging
 
 [ ] Preview excel data
 
-[ ] Package
+[ ] DockStrings
+
 

@@ -1,4 +1,6 @@
 import asyncio
+import os
+import sys
 from pathlib import Path
 
 import customtkinter as ctk
@@ -8,6 +10,13 @@ from PIL import Image, ImageTk
 import xl
 
 ctk.set_appearance_mode("dark")
+
+
+# NOTE: For packaging assets in pyinstaller with --one-file option, Just add this search function:
+# Then use this function to find the asset, eg: resource("my_file")
+def resource(relative_path):
+    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 class Utility:
@@ -27,8 +36,10 @@ class Utility:
 
     class Path:
         CWD = Path(".")
-        EXCEL_ICON_PATH = CWD / "icons" / "xls-file.png"
-        CLOSE_ICON_PATH = CWD / "icons" / "red2.png"
+        # EXCEL_ICON_PATH = CWD / "icons" / "xls-file.png"
+        # CLOSE_ICON_PATH = CWD / "icons" / "red2.png"
+        EXCEL_ICON_PATH = resource(os.path.join("icons", "xls-file.png"))
+        CLOSE_ICON_PATH = resource(os.path.join("icons", "red2.png"))
 
 
 # ------ Main Window class ----------------------------------------------
@@ -352,11 +363,9 @@ class ExcelIcon(ctk.CTkCanvas):
 
     def enter(self, event):
         self.itemconfig(self.redx, state=ctk.NORMAL)
-        print("enter event on enter")
 
     def leave(self, event):
         self.itemconfig(self.redx, state=ctk.HIDDEN)
-        print("leave event on leave")
 
     def _delete(self, event):
         self.delete_event_handler()
@@ -365,12 +374,10 @@ class ExcelIcon(ctk.CTkCanvas):
     def enter_with_cursor(self, event):
         self.itemconfig(self.redx, state=ctk.NORMAL)
         self.configure(cursor="hand2")
-        print("enter_with_cursor on enter")
 
     def leave_with_cursor(self, event):
         self.itemconfig(self.redx, state=ctk.HIDDEN)
         self.configure(cursor="")
-        print("leave_with_cursor on enter")
 
 
 class SidebarFrame(ctk.CTkFrame):
