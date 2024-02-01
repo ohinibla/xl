@@ -6,10 +6,8 @@ TODO:
 
 [✓] Mouse event bug
 
+[✓] DockStrings
+
 [ ] Packaging
 
 [ ] Preview excel data
-
-[ ] DockStrings
-
-

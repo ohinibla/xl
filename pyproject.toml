@@ -9,7 +9,6 @@ readme = "README.md"
 python = "3.12.1"
 altgraph = "0.17.4"
 async-tkinter-loop = "0.9.3"
-auto-py-to-exe = "2.42.0"
 bottle = "0.12.25"
 bottle-websocket = "0.2.9"
 cffi = "1.16.0"
@@ -41,6 +40,9 @@ whichcraft = "0.6.1"
 zope-event = "5.0"
 zope-interface = "6.1"
 
+
+[tool.poetry.group.dev.dependencies]
+auto-py-to-exe = "^2.42.0"
 
 [build-system]
 requires = ["poetry-core"]
