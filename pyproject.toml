@@ -6,7 +6,7 @@ authors = ["ohinibla <ohinibla@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.1"
+python = "3.11.0"
 altgraph = "0.17.4"
 async-tkinter-loop = "0.9.3"
 bottle = "0.12.25"
@@ -43,6 +43,7 @@ zope-interface = "6.1"
 
 [tool.poetry.group.dev.dependencies]
 auto-py-to-exe = "^2.42.0"
+nuitka = "^2.0.1"
 
 [build-system]
 requires = ["poetry-core"]

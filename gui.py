@@ -589,7 +589,6 @@ class App(ctk.CTk):
         self.title("Excel Duplicates")
         self.geometry("1000x500")
         self.resizable(False, False)
-        # self.iconbitmap(Utility.PATH["WIN_ICON_PATH"])
 
         # ------ Grid ----------------------
         self.grid_columnconfigure(0, weight=1)
