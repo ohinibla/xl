@@ -28,10 +28,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
-    - name: Chocolatey Action
-      uses: crazy-max/ghaction-chocolatey@v3.0.0
-      with:
-        args: install -y python3 visualstudio2019-workload-vctools
     - name: download pytinstaller source code
       working-directory: ${{github.workspace}}
       run: Invoke-WebRequest -Uri "https://github.com/pyinstaller/pyinstaller/archive/refs/tags/v6.3.0.zip" -OutFile output.zip
@@ -39,4 +35,4 @@ jobs:
       working-directory: ${{github.workspace}}
       run: |
         Expand-Archive -Path output.zip -DestinationPath pyinstaller
-        ls .
+        ls pyinstaller
