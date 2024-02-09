@@ -268,9 +268,6 @@ pycparser==2.21 ; python_full_version == "3.11.0" \
 pygments==2.17.2 ; python_full_version == "3.11.0" \
     --hash=sha256:b27c2826c47d0f3219f29554824c30c5e8945175d888647acd804ddd04af846c \
     --hash=sha256:da46cec9fd2de5be3a8a784f434e4c4ab670b4ff54d605c4c2717e9d49c4c367
-pyinstaller-hooks-contrib==2024.0 ; python_full_version == "3.11.0" \
-    --hash=sha256:469b5690df53223e2e8abffb2e44d6ee596e7d79d4b1eed9465123b67439875a \
-    --hash=sha256:a7118c1a5c9788595e5c43ad058a7a5b7b6d59e1eceb42362f6ec1f0b61986b0
 pyparsing==3.1.1 ; python_full_version == "3.11.0" \
     --hash=sha256:32c7c0b711493c72ff18a981d24f28aaf9c1fb7ed5e9667c9e84e3db623bdbfb \
     --hash=sha256:ede28a1a32462f5a9705e07aea48001a08f7cf81a021585011deba701581a0db

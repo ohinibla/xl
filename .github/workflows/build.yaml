@@ -44,7 +44,7 @@ jobs:
         python3 ./waf all --target-arch=64bit
         cd ..
     - name: Install pyinstaller
-      working-directory: ${{github.workspace}}/
+      working-directory: ${{github.workspace}}/pyinstaller/pyinstaller-6.3.0/
       run: pip install .
     - name: package with pyinstaller
       working-directory: ${{github.workspace}}/
