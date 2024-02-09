@@ -39,8 +39,8 @@ jobs:
       working-directory: ${{github.workspace}}
       run: Expand-Archive -Path output.zip -DestinationPath pyinstaller
     - name: build pyinstaller bootloader
+      working-directory: ${{github.workspace}}\pytinstaller\bootloader\
       run: |
-        working-directory: ${{github.workspace}}/pytinstaller/bootloader/
         python3 ./waf all --target-arch=64bit
         cd ..
     - name: Install pyinstaller
