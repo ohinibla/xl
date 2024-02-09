@@ -28,11 +28,36 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
+    - name: Chocolatey Action
+      uses: crazy-max/ghaction-chocolatey@v3.0.0
+      with:
+        args: install -y python3 visualstudio2019-workload-vctools
     - name: download pytinstaller source code
       working-directory: ${{github.workspace}}
       run: Invoke-WebRequest -Uri "https://github.com/pyinstaller/pyinstaller/archive/refs/tags/v6.3.0.zip" -OutFile output.zip
     - name: unzip pytinstaller source code
       working-directory: ${{github.workspace}}
+      run: Expand-Archive -Path output.zip -DestinationPath pyinstaller
+    - name: build pyinstaller bootloader
+      working-directory: ${{github.workspace}}\pyinstaller\pyinstaller-6.3.0\bootloader\
       run: |
-        Expand-Archive -Path output.zip -DestinationPath pyinstaller
-        ls pyinstaller
+        python3 ./waf all --target-arch=64bit
+        cd ..
+    - name: Install pyinstaller
+      working-directory: ${{github.workspace}}/
+      run: pip install .
+    - name: package with pyinstaller
+      working-directory: ${{github.workspace}}/
+      run: |
+        pyinstaller --noconfirm --onedir --windowed --icon "./icons/icon2.ico" --add-data "./xl.py:." --add-data "./icons:icons/" --add-data "C:/hostedtoolcache/windows/python/3.11.0/x64/lib/site-packages/customtkinter:customtkinter/" "./gui.py"
+    - name: zip binary
+      run: Compress-Archive -Path dist -Destination excel-duplicate-marker.zip
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: excel-duplicate-marker.zip
+        asset_name: excel-duplicate-marker.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        body: ""
