@@ -1,0 +1,56 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: build with Nuitka
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python 3.11.0
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11.0"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+    - name: Build with Nuitka
+      uses: Nuitka/Nuitka-Action@main
+      with:
+        nuitka-version: main
+        script-name: gui.py
+        standalone: true
+        disable-console: true
+        enable-plugins: tk-inter
+        include-data-dir: icons=icons
+    - name: VirusTotal Scan
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        vt_api_key: ${{ secrets.VT_API_KEY }}
+        update_release_body: true
+        files: build/gui.exe
+    - name: zip binaries
+      run: |
+        Compress-Archive -Path build\gui.exe -Destination excel-duplicate-marker-nuitka.zip
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: excel-duplicate-marker-nuitka.zip
+        asset_name: excel-duplicate-marker-nuitka.zip
+        tag: ${{ github.ref }}
+        overwrite: true

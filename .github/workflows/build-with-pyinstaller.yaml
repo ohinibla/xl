@@ -1,0 +1,66 @@
+
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: build with Pytinstaller
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python 3.11.0
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11.0"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+    - name: Install msvc
+      uses: crazy-max/ghaction-chocolatey@v3.0.0
+      with:
+        args: install -y python3 visualstudio2019-workload-vctools
+    - name: download pytinstaller source code
+      run: Invoke-WebRequest -Uri "https://github.com/pyinstaller/pyinstaller/archive/refs/tags/v6.3.0.zip" -OutFile output.zip
+    - name: unzip pytinstaller source code
+      run: Expand-Archive -Path output.zip -DestinationPath .
+    - name: build pyinstaller bootloader
+      working-directory: ${{github.workspace}}\pyinstaller-6.3.0\bootloader\
+      run: |
+        python3 ./waf all --target-arch=64bit
+    - name: Install pyinstaller
+      working-directory: ${{github.workspace}}/pyinstaller-6.3.0/
+      run: pip install .
+    - name: Build with pyinstaller
+      run: |
+        pyinstaller --noconfirm --onedir --clean --exclude-module "multiprocessing" --console --hide-console "minimize-early" --icon "./icons/icon2.ico" --add-data "./xl.py:." --add-data "./icons:icons/" --add-data "C:/hostedtoolcache/windows/python/3.11.0/x64/lib/site-packages/customtkinter:customtkinter/" "./gui.py"
+    - name: VirusTotal Scan
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        vt_api_key: ${{ secrets.VT_API_KEY }}
+        update_release_body: true
+        files: |
+          dist\gui\gui.exe
+    - name: zip binaries
+      run: |
+        Compress-Archive -Path dist\gui\ -Destination excel-duplicate-marker-pyinstaller.zip
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: excel-duplicate-marker-pyinstaller.zip
+        asset_name: excel-duplicate-marker-pyinstaller.zip
+        tag: ${{ github.ref }}
+        overwrite: true
