@@ -50,17 +50,23 @@
   <widget class="QLabel" name="label_fn">
    <property name="geometry">
     <rect>
-     <x>38</x>
+     <x>18</x>
      <y>100</y>
-     <width>35</width>
-     <height>10</height>
+     <width>71</width>
+     <height>20</height>
     </rect>
    </property>
    <property name="text">
     <string>TextLabel</string>
    </property>
+   <property name="textFormat">
+    <enum>Qt::AutoText</enum>
+   </property>
    <property name="scaledContents">
     <bool>false</bool>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
   <widget class="QLabel" name="label_x">

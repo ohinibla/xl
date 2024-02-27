@@ -1,6 +1,7 @@
 import asyncio
 import random
 from pathlib import Path
+from typing import Callable
 
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
@@ -42,7 +43,7 @@ def generate_days(days: int, numbers: int) -> None:
     for i in track(range(1, days + 1), description="generating test cases         "):
         wb = Workbook()
         ws = wb.active
-        for row in ws.iter_rows(min_row=1, max_col=1, max_row=numbers):
+        for row in ws.iter_rows(min_row=1, max_col=1, max_row=numbers):  # type: ignore
             for cell in row:
                 cell.value = generate_random_num()
         wb.save(Path(".") / "months" / f"{i}.xlsx")
@@ -65,7 +66,7 @@ def get_files_values(files: set[str]) -> dict[str, tuple[(str, list)]]:
     for xp in track(files, description="generating values dictionary  "):
         wb = load_workbook(filename=xp, data_only=True)
         ws = wb.active
-        col_A = ws["A"]
+        col_A = ws["A"]  # type: ignore
         for v in col_A:
             _v = v.value
             # if not found return a a tuple of (0, [])
@@ -76,12 +77,13 @@ def get_files_values(files: set[str]) -> dict[str, tuple[(str, list)]]:
     return values
 
 
-async def edit_files_values(
+def edit_files_values(
     valuesDict: dict,
     files: set,
     make_copy: bool,
     show_dup_origin: bool,
     test: bool,
+    prog: Callable | None,
 ) -> None:
     """
     Asynchronously generate new files or rewrite existing with the duplicated numbers marked
@@ -102,17 +104,18 @@ async def edit_files_values(
     # TODO: use existing Path methods to handle paths
     path_delimiter = "\\" if test else "/"
     fp = Path(".") / "data"
+    idx = 1
     for xp in track(files, description="writing files                 "):
         wb = load_workbook(filename=xp, data_only=True)
         ws = wb.active
-        col_A = ws["A"]
+        col_A = ws["A"]  # type: ignore
         for cell in col_A:
             if valuesDict[cell.value][0] > 1:
                 # font color = #FF0000
                 cell.font = Font(color="FF0000")
                 if show_dup_origin:
                     for i, x in enumerate(set(valuesDict[cell.value][1])):
-                        ws.cell(
+                        ws.cell(  # type: ignore
                             row=cell.row,
                             column=cell.column + i + 1,
                             value=x.split(path_delimiter)[-1],
@@ -124,7 +127,10 @@ async def edit_files_values(
             wb.save(filename=fp / xp_file_name)
         else:
             wb.save(xp)
-        await asyncio.sleep(0)
+        if prog != None:
+            prog.emit(((idx / len(files)) * 100, xp))
+            idx += 1
+        # await asyncio.sleep(0)
 
 
 # ----------------- test ----------------------
@@ -135,11 +141,16 @@ def test() -> None:
 
     _v = get_files_values(test_files)
     edit_files_values(
-        valuesDict=_v, files=test_files, make_copy=True, show_dup_origin=True, test=True
+        valuesDict=_v,
+        files=test_files,
+        make_copy=True,
+        show_dup_origin=True,
+        test=True,
+        prog=None,
     )
 
 
 if __name__ == "__main__":
     generate_days(days=31, numbers=400)
     # asyncio.run(test())
-    test()
+    # test()

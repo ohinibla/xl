@@ -1,12 +1,34 @@
-import asyncio
-
-from PySide6.QtCore import QObject, QRunnable, Signal
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtWidgets import (QApplication, QFileDialog, QFrame, QGridLayout,
-                               QMainWindow, QPushButton, QWidget)
+                               QMainWindow)
 
 import ExcelIcon
 import MainWindow
 import xl
+
+
+class App_ExcelIcon(QFrame, ExcelIcon.Ui_Form):
+    def __init__(self, file_path, row, col, index):
+        super().__init__()
+        self.setupUi(self)
+        self.row = row
+        self.col = col
+        self.index = index
+        self.file_name = file_path.split("/")[-1]
+        self.label_fn.setText(self.file_name)
+        self.label_x.hide()
+
+    def enterEvent(self, event):
+        self.label_icon.setEnabled(False)
+        self.label_x.show()
+
+    def leaveEvent(self, event):
+        self.label_icon.setEnabled(True)
+        self.label_x.hide()
+
+    def mousePressEvent(self, event) -> None:
+        window.delete_item(self, self.index)
+        return super().mousePressEvent(event)
 
 
 class WorkerSignals(QObject):
@@ -29,10 +51,11 @@ class WorkerSignals(QObject):
 
     """
 
+    start = Signal()
     finished = Signal()
     error = Signal(str)
     result = Signal(object)
-    progress = Signal(int)
+    progress = Signal(tuple)
 
 
 class Worker(QRunnable):
@@ -51,28 +74,27 @@ class Worker(QRunnable):
 
     def __init__(self, callback_fn, *args, **kwargs):
         super().__init__()
+        self.callback_fn = callback_fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
 
+        self.kwargs["progress_callback"] = self.signals.progress
 
-class App_ExcelIcon(QFrame, ExcelIcon.Ui_Form):
-    def __init__(self, file_path, row, col, index):
-        super().__init__()
-        self.setupUi(self)
-        self.index = index
-        self.file_name = file_path.split("/")[-1]
-        self.label_fn.setText(self.file_name)
-        self.label_x.hide()
-
-    def enterEvent(self, event):
-        self.label_icon.setEnabled(False)
-        self.label_x.show()
-
-    def leaveEvent(self, event):
-        self.label_icon.setEnabled(True)
-        self.label_x.hide()
-
-    def mousePressEvent(self, event) -> None:
-        window.delete_item(self, self.index)
-        return super().mousePressEvent(event)
+    @Slot()
+    def run(self):
+        """
+        Initialise the runner function with passed args, kwargs.
+        """
+        self.signals.start.emit()
+        try:
+            result = self.callback_fn(*self.args, **self.kwargs)
+        except:
+            self.signals.error.emit("AN ERROR OCCURRED")
+        else:
+            self.signals.result.emit(result)
+        finally:
+            self.signals.finished.emit()
 
 
 class App_MainWindow(QMainWindow, MainWindow.Ui_MainWindow):
@@ -80,11 +102,17 @@ class App_MainWindow(QMainWindow, MainWindow.Ui_MainWindow):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.selected_files = set()
+        self.added_widgets = dict()
         self.grid_layout = QGridLayout(self.scrollAreaWidgetContents)
-        self.btn_open_files.clicked.connect(self.open)
-        self.btn_find_duplicates.clicked.connect(self.find_duplicates)
+        self.btn_open_files.pressed.connect(self.open)
+        self.btn_find_duplicates.pressed.connect(self.main_function)
+        self.btn_remove_files.pressed.connect(self.remove_files)
         self.require_duplicate_origin = False
         self.require_save = False
+        self.progressBar.hide()
+        self.threadpool = QThreadPool()
+
+        # toggle switches
         self.switch_save_files.stateChanged.connect(
             lambda _: self.__setattr__("require_save", not self.require_save)
         )
@@ -93,6 +121,14 @@ class App_MainWindow(QMainWindow, MainWindow.Ui_MainWindow):
                 "require_duplicate_origin", not self.require_duplicate_origin
             )
         )
+
+    def remove_files(self):
+        self.selected_files = set()
+        self.added_widgets = dict()
+        for i in range(self.grid_layout.rowCount()):
+            for j in range(self.grid_layout.columnCount()):
+                item = self.grid_layout.itemAtPosition(i, j)
+                item.widget().deleteLater()
 
     def add_item(self, item_path, index):
         if item_path not in self.selected_files:
@@ -105,6 +141,7 @@ class App_MainWindow(QMainWindow, MainWindow.Ui_MainWindow):
         col = index % 4
         index = index
         w = App_ExcelIcon(file_path, row, col, index)
+        self.added_widgets[file_path] = w
         self.grid_layout.addWidget(w, row, col)
 
     def open(self):
@@ -130,20 +167,56 @@ class App_MainWindow(QMainWindow, MainWindow.Ui_MainWindow):
             w = self.grid_layout.takeAt(index)
             after_widgets.add(w.widget())
 
-        # add collected widgets with updated position, starting at index
+        # add collected widgets with updated positions, starting at index
         for i, w in enumerate(after_widgets, index):
             self.grid_layout.addWidget(w, i // 4, i % 4)
 
-    async def find_duplicates(self):
-        # TODO:
+        print(
+            "Multithreading with maximum %d threads" % self.threadpool.maxThreadCount()
+        )
+
+    def progress_fn(self, n):
+        truncated_file_name = n[1].split("/")[-1]
+        self.progressBar.setFormat(f"({truncated_file_name}) {n[0]:.1f}%")
+        self.progressBar.setValue(n[0])
+        # self.added_widgets[n[1]].setStyleSheet
+        self.added_widgets[n[1]].label_fn.setStyleSheet(
+            "color: green; font-weight: bold"
+        )
+
+    def print_output(self, s):
+        print(s)
+
+    def start_thread(self):
+        self.progressBar.reset()
+        self.progressBar.show()
+        print("THREAD STARTED")
+
+    def thread_compelete(self):
+        print("THREAD COMPLETE")
+
+    def main_function(self):
+        worker = Worker(self.find_duplicates)
+        worker.signals.start.connect(self.start_thread)
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_compelete)
+        worker.signals.progress.connect(self.progress_fn)
+
+        # Execute
+        self.threadpool.start(worker)
+
+    def find_duplicates(self, progress_callback):
         values = xl.get_files_values(self.selected_files)
-        await xl.edit_files_values(
+        xl.edit_files_values(
             valuesDict=values,
             files=self.selected_files,
             make_copy=self.require_save,
             show_dup_origin=self.require_duplicate_origin,
             test=False,
+            prog=progress_callback,
         )
+
+        return "DONE"
 
 
 app = QApplication([])
